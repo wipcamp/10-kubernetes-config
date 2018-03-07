@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: 10-frontend
+  namespace: production
+  labels:
+    app: 10-frontend
+    organize: wipcamp10
+    tier: frontend
+spec:
+  replicas: 4
+  selector:
+    app: 10-frontend
+    organize: wipcamp10
+    tier: frontend
+  template:
+    metadata:
+      labels:
+        app: 10-frontend
+        tier: frontend
+        organize: wipcamp10
+    spec:
+      containers:
+      - name: 10-frontend
+        image: registry.wip.camp/10-frontend:master-14
+        imagePullPolicy: Always
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 20
+          periodSeconds: 30
+        resources:
+          limits:
+            memory: "300Mi"
+            cpu: "0.8"
+          requests:
+            memory: "100Mi"
+            cpu: "0.2"
+        env:
+        - name: NODE_ENV
+          value: "production"
+        ports:
+        - containerPort: 3000

@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pma
+  namespace: development
+  labels:
+    app: pma
+    organize: wipcamp10
+    tier: database
+spec:
+  containers:
+  - name: db
+    image: phpmyadmin/phpmyadmin:4.7
+    ports:
+    - containerPort: 80
+    env:
+    - name: PMA_HOST
+      value: db-service
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pma-service
+  namespace: development
+  labels:
+    app: pma
+    organize: wipcamp10
+    tier: database
+spec:
+  type: NodePort
+  selector:
+    app: pma
+    organize: wipcamp10
+    tier: database
+  ports:
+  - port: 80
+    targetPort: 80
+  
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: pma-ingress
+  namespace: development
+spec:
+  rules:
+  - host: dbconsole.freezer.wip.camp
+    http:
+      paths:
+      - backend:
+          serviceName: pma-service
+          servicePort: 80

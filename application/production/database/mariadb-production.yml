@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: db-volume-production
+  namespace: production
+  labels:
+    app: db
+    organize: wipcamp10
+    tier: database
+    env: production
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  nfs:
+    server: nfs.wip.camp
+    path: "/mnt/wip-camp/production/db"
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-volume-production-claim
+  namespace: production
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  selector:
+    matchLabels:
+      app: db
+      organize: wipcamp10
+      tier: database
+      env: production
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-config
+  namespace: production
+data:
+  server.cnf: |
+    [server]
+    bind-address=0.0.0.0
+  mariadb.cnf: |
+    [client]
+    default-character-set = utf8
+    [mysqld]
+    character-set-server  = utf8
+    collation-server      = utf8_general_ci
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db
+  namespace: production
+  labels:
+    app: db
+    organize: wipcamp10
+    tier: database
+spec:
+  containers:
+  - name: db
+    image: mariadb:10.3.4
+    ports:
+    - containerPort: 3306
+    env:
+    - name: MYSQL_ROOT_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: db-secret
+          key: root-password
+    volumeMounts:
+    - name: config
+      mountPath: /etc/mysql/conf.d
+    - name: datadir
+      mountPath: /var/lib/mysql
+  volumes:
+  - name: config
+    configMap:
+      name: db-config
+      items:
+        - path: "server.cnf"
+          key: server.cnf
+        - path: "mariadb.cnf"
+          key: mariadb.cnf
+  - name: datadir
+    persistentVolumeClaim:
+       claimName: db-volume-production-claim
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-service
+  namespace: production
+  labels:
+    app: db
+    organize: wipcamp10
+    tier: database
+spec:
+  type: NodePort
+  selector:
+    app: db
+    organize: wipcamp10
+    tier: database
+  ports:
+  - port: 3306
+    targetPort: 3306

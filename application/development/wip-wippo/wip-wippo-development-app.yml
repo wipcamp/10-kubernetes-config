@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: wip-wippo
+  namespace: development
+  labels:
+    app: wip-wippo
+    organize: wipcamp10
+    tier: frontend
+spec:
+  replicas: 1
+  selector:
+    app: wip-wippo
+    organize: wipcamp10
+    tier: frontend
+  template:
+    metadata:
+      labels:
+        app: wip-wippo
+        organize: wipcamp10
+        tier: frontend
+    spec:
+      containers:
+      - name: wip-wippo
+        image: registry.wip.camp/10-wippo:develop
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 20
+          periodSeconds: 30
+        resources:
+          limits:
+            memory: "200Mi"
+            cpu: "0.5"
+          requests:
+            memory: "100Mi"
+            cpu: "0.1"
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: API_URL
+          value: "https://api.freezer.wip.camp/api/v1"
+        - name: URL
+          value: "https://api.freezer.wip.camp"
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: wip-wippo
+  namespace: development
+  labels:
+    app: wip-wippo
+    organize: wipcamp10
+    tier: frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: wip-wippo
+    organize: wipcamp10
+    tier: frontend
+  ports:
+  - port: 80
+    targetPort: 3000
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: wip-wippo
+  namespace: development
+  labels:
+    app: wip-wippo
+    organize: wipcamp10
+    tier: frontend
+spec:
+  rules:
+  - host: wippo.freezer.wip.camp
+    http:
+      paths:
+      - backend:
+          serviceName: wip-wippo
+          servicePort: 80

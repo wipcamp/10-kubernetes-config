@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: 10-game-ramrun
+  namespace: production
+  labels:
+    app: 10-game-ramrun
+    organize: wipcamp10
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    app: 10-game-ramrun
+    organize: wipcamp10
+    tier: frontend
+  template:
+    metadata:
+      labels:
+        app: 10-game-ramrun
+        organize: wipcamp10
+        tier: frontend
+    spec:
+      containers:
+      - name: 10-game-ramrun
+        image: registry.wip.camp/10-game-pr:master
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 20
+          periodSeconds: 30
+        resources:
+          limits:
+            memory: "200Mi"
+            cpu: "0.5"
+          requests:
+            memory: "100Mi"
+            cpu: "0.1"
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: wip-game-pr
+  namespace: production
+  labels:
+    app: 10-game-ramrun
+    organize: wipcamp10
+    tier: frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: 10-game-ramrun
+    organize: wipcamp10
+    tier: frontend
+  ports:
+  - port: 80
+    targetPort: 80
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: 10-game-ramrun
+  namespace: production
+  labels:
+    app: 10-game-ramrun
+    organize: wipcamp10
+    tier: frontend
+spec:
+  rules:
+  - host: ramrun.game.wip.camp
+    http:
+      paths:
+      - backend:
+          serviceName: wip-game-pr
+          servicePort: 80
